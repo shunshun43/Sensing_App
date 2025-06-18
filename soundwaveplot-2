@@ -1,0 +1,48 @@
+# !pip install librosa matplotlib numpy
+
+import librosa
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+
+# === フォルダ指定 ===
+folder1 = 'sounddata'
+folder2 = 'sounddata2'
+
+# === 対応するWAVファイルのリストを取得（ソートして順序対応） ===
+files1 = sorted([f for f in os.listdir(folder1) if f.lower().endswith('.wav')])
+files2 = sorted([f for f in os.listdir(folder2) if f.lower().endswith('.wav')])
+
+# フォルダ内のファイル数が一致しているか確認
+if len(files1) != len(files2):
+    raise ValueError("❌ フォルダ内のWAVファイル数が一致していません")
+
+# === 各ペアに対して処理 ===
+for i, (f1, f2) in enumerate(zip(files1, files2)):
+    path1 = os.path.join(folder1, f1)
+    path2 = os.path.join(folder2, f2)
+
+    fig, axes = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+
+    for idx, (wav_path, ax, label) in enumerate(zip([path1, path2], axes, ['sounddata', 'sounddata2'])):
+        y, sr = librosa.load(wav_path, sr=None)
+
+        # 🔸4秒以降の切り出し（ここを変更）
+        start_sample = int(sr * 4)
+        y_trimmed = y[start_sample:] if len(y) > start_sample else np.array([])
+        time = np.linspace(4, 4 + len(y_trimmed) / sr, num=len(y_trimmed))
+
+        if len(y_trimmed) > 0:
+            ax.plot(time, np.abs(y_trimmed), color='blue', linewidth=1)
+        ax.set_title(f'Magnitude vs. Time ({label}/{os.path.basename(wav_path)})', fontsize=14)
+        ax.set_ylabel('Magnitude')
+        ax.grid(True)
+
+    axes[-1].set_xlabel('Time [s]')
+    plt.tight_layout()
+
+    # JPEG保存（ファイル名にペア番号を含める）
+    outname = f'waveform_pair_{i}.jpg'
+    plt.savefig(outname, format='jpeg', dpi=300)
+    print(f"✅ 保存しました: {outname}")
+    plt.close()
